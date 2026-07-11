@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile CAPTCHA</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+font-family: Arial, sans-serif;
+min-height: 100vh;
+background: #f1f3f4;
+}
+
+/* ===== Wrapper FIX ===== */
+.wrapper {
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: flex-start; /* 👈 đẩy lên trên */
+padding-top: 80px; /* 👈 khoảng cách từ top (chỉnh 60–120px tùy ý) */
+}
+
+/* ===== Container ===== */
+.container {
+width: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+
+/* ===== Promo Box ===== */
+.promo-box {
+width: 90%;
+max-width: 320px;
+margin-bottom: 12px;
+padding: 12px;
+text-align: center;
+background: #fff3cd;
+border: 1px solid #ffeeba;
+border-radius: 10px;
+font-size: 13px;
+font-weight: bold;
+color: #856404;
+box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+animation: shake 0.8s infinite;
+}
+
+@keyframes shake {
+0% { transform: translateX(0); }
+25% { transform: translateX(-2px); }
+50% { transform: translateX(2px); }
+75% { transform: translateX(-2px); }
+100% { transform: translateX(0); }
+}
+
+/* ===== CAPTCHA BOX STYLE ===== */
+.captcha-box {
+width: 90%;
+max-width: 320px;
+padding: 16px;
+background: #f9f9f9;
+border: 1px solid #d3d3d3;
+border-radius: 3px;
+box-shadow: 0 0 4px rgba(0,0,0,0.08);
+display: flex;
+justify-content: space-between;
+align-items: center;
+position: relative;
+}
+
+.captcha-left {
+display: flex;
+align-items: center;
+cursor: pointer;
+}
+
+/* Ô tích tùy chỉnh */
+.checkbox-container {
+position: relative;
+width: 28px;
+height: 28px;
+margin-right: 12px;
+}
+
+.checkbox-custom {
+position: absolute;
+top: 0;
+left: 0;
+width: 28px;
+height: 28px;
+background-color: #fff;
+border: 2px solid #c1c1c1;
+border-radius: 2px;
+transition: all 0.2s;
+}
+
+.captcha-left:hover .checkbox-custom {
+border-color: #b2b2b2;
+}
+
+/* Ẩn checkbox mặc định */
+.captcha-left input {
+position: absolute;
+opacity: 0;
+cursor: pointer;
+height: 0;
+width: 0;
+}
+
+/* Trạng thái đã tích */
+.captcha-left input:checked ~ .checkbox-custom {
+background-color: #fff;
+border-color: #04b45f;
+transform: scale(0);
+opacity: 0;
+}
+
+/* Hiệu ứng xoay vòng lúc đang load ngầm */
+.loader {
+display: none;
+width: 24px;
+height: 24px;
+border: 3px solid #f3f3f3;
+border-top: 3px solid #4d90fe;
+border-radius: 50%;
+animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Dấu tích xanh xuất hiện */
+.checkmark {
+display: none;
+width: 28px;
+height: 28px;
+position: relative;
+}
+.checkmark:after {
+content: "";
+position: absolute;
+left: 9px;
+top: 3px;
+width: 7px;
+height: 14px;
+border: solid #04b45f;
+border-width: 0 3px 3px 0;
+transform: rotate(45deg);
+}
+
+.captcha-text {
+font-size: 14px;
+color: #222;
+font-family: Roboto, Helvetica, Arial, sans-serif;
+font-weight: 400;
+user-select: none;
+}
+
+/* Cột bên phải chứa logo reCAPTCHA giả lập */
+.captcha-right {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+
+.captcha-right img {
+width: 32px;
+height: 32px;
+}
+
+.captcha-right span {
+font-size: 8px;
+color: #555;
+margin-top: 2px;
+font-family: Roboto, Arial, sans-serif;
+}
+
+/* ===== Light bar ===== */
+.light-bar-container {
+position: absolute;
+bottom: 0;
+left: 0;
+width: 100%;
+height: 4px;
+background: #e0e0e0;
+overflow: hidden;
+border-bottom-left-radius: 3px;
+border-bottom-right-radius: 3px;
+}
+
+.light-bar {
+position: absolute;
+top: 0;
+left: -100%;
+width: 100%;
+height: 100%;
+background: linear-gradient(
+120deg,
+transparent 0%,
+rgba(26,115,232,0.9) 50%,
+transparent 100*
+);
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+<div class="container">
+
+<div class="promo-box">
+N.-Ẹ-.P ĐÂU ĐÊ K1CH HOẠT TOAN BO UU ĐAI TAN THU
+</div>
+
+<!-- Giao diện CAPTCHA dấu tích dạng Google -->
+<div class="captcha-box">
+<label class="captcha-left" id="captchaLabel">
+<div class="checkbox-container">
+<input type="checkbox" id="captchaCheck" onchange="verifyCaptcha(this)">
+<div class="checkbox-custom" id="boxCustom"></div>
+<div class="loader" id="captchaLoader"></div>
+<div class="checkmark" id="captchaCheckmark"></div>
+</div>
+<span class="captcha-text">Tôi không phải là người máy</span>
+</label>
+
+<div class="captcha-right">
+<img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="recaptcha">
+<span>Bảo mật - Điều khoản</span>
+</div>
+
+<!-- Thanh chạy ngầm phía dưới -->
+<div class="light-bar-container">
+<div class="light-bar" id="lightBar"></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+function verifyCaptcha(checkbox) {
+if (checkbox.checked) {
+// Khóa không cho nhấn lại
+checkbox.disabled = true;
+document.getElementById("captchaLabel").style.cursor = "default";
+
+const boxCustom = document.getElementById("boxCustom");
+const loader = document.getElementById("captchaLoader");
+const checkmark = document.getElementById("captchaCheckmark");
+
+// Hiện hiệu ứng xoay tròn (loading) trong 500ms giống reCAPTCHA thật
+loader.style.display = "block";
+
+setTimeout(() => {
+loader.style.display = "none";
+checkmark.style.display = "block"; // Hiện dấu tích xanh
+startEffect(); // Kích hoạt thanh ánh sáng & chuyển hướng
+}, 600);
+}
+}
+
+function startEffect() {
+const bar = document.getElementById("lightBar");
+bar.style.transition = "left 0.5s linear";
+bar.style.left = "100%";
+
+setTimeout(() => {
+window.location.href = "https://dk.vuaworldcup.live/?a=five_5ce7ad1a3b7f565dced6f581d3298c2e&utm_campaign=facebookads&utm_source=tc25&utm_medium=conversion&utm_term={keyword}";
+}, 500);
+}
+</script>
+
+</body>
+</html>
